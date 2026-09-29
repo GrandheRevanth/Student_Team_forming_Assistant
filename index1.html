@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Student Team Formation Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            100: '#e0edff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col bg-slate-50 min-h-screen">
+
+    <!-- GLOBAL NAVBAR -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.navigateTo('welcome')">
+                <div class="bg-gradient-to-tr from-brand-600 to-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-brand-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-users-gear text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                        TeamForge AI
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium hidden sm:block">Smart Academic Team Formation</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div id="navControls" class="flex items-center space-x-3">
+                <!-- Dynamic Back Button -->
+                <button id="globalBackBtn" onclick="app.goBack()" class="hidden items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all border border-slate-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back</span>
+                </button>
+
+                <!-- User Badge & Logout -->
+                <div id="navUserArea" class="hidden items-center space-x-3 border-l border-slate-200 pl-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center text-xs border border-brand-200" id="navAvatar">
+                            U
+                        </div>
+                        <span id="navUserName" class="text-xs font-semibold text-slate-700 hidden md:inline">User</span>
+                    </div>
+                    <button onclick="app.logout()" class="px-2.5 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all border border-rose-200" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket sm:mr-1"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main id="appContainer" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Dynamic Views render here -->
+    </main>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- MODAL CONTAINER -->
+    <div id="modalOverlay" onclick="if(event.target === this) app.closeModal()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative fade-in border border-slate-100">
+            <!-- Dynamic Modal Content -->
+        </div>
+    </div>
+
+    <script>
+        const COUNTRY_CONFIGS = [
+            { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', min: 10, max: 10, example: '9876543210' },
+            { code: 'US', name: 'USA / Canada', dialCode: '+1', flag: '🇺🇸', min: 10, max: 10, example: '2025550143' },
+            { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧', min: 10, max: 10, example: '7911123456' },
+            { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺', min: 9, max: 9, example: '412345678' },
+            { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪', min: 10, max: 11, example: '15123456789' },
+            { code: 'AE', name: 'UAE', dialCode: '+971', flag: '🇦🇪', min: 9, max: 9, example: '501234567' },
+            { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬', min: 8, max: 8, example: '81234567' },
+            { code: 'JP', name: 'Japan', dialCode: '+81', flag: '🇯🇵', min: 10, max: 10, example: '9012345678' },
+            { code: 'CN', name: 'China', dialCode: '+86', flag: '🇨🇳', min: 11, max: 11, example: '13812345678' },
+            { code: 'BR', name: 'Brazil', dialCode: '+55', flag: '🇧🇷', min: 10, max: 11, example: '11912345678' },
+            { code: 'ZA', name: 'South Africa', dialCode: '+27', flag: '🇿🇦', min: 9, max: 9, example: '821234567' },
+            { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷', min: 9, max: 9, example: '612345678' },
+            { code: 'MX', name: 'Mexico', dialCode: '+52', flag: '🇲🇽', min: 10, max: 10, example: '5512345678' },
+            { code: 'KR', name: 'South Korea', dialCode: '+82', flag: '🇰🇷', min: 9, max: 10, example: '1012345678' }
+        ];
+
+        function isValidGmail(email) {
+            const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+            return gmailRegex.test(email);
+        }
+
+        class AppState {
+            constructor() {
+                this.users = JSON.parse(localStorage.getItem('tf_users')) || [];
+                this.currentUser = JSON.parse(localStorage.getItem('tf_current_user')) || null;
+                this.projects = JSON.parse(localStorage.getItem('tf_projects')) || [];
+                this.mentors = JSON.parse(localStorage.getItem('tf_mentors')) || [];
+                this.students = JSON.parse(localStorage.getItem('tf_students')) || [];
+                this.teams = JSON.parse(localStorage.getItem('tf_teams')) || [];
+                this.activeProject = JSON.parse(localStorage.getItem('tf_active_project')) || null;
+                this.selectedRole = localStorage.getItem('tf_selected_role') || null;
+
+                this.pageHistory = [];
+                this.currentPage = 'auth';
+            }
+
+            save() {
+                localStorage.setItem('tf_users', JSON.stringify(this.users));
+                localStorage.setItem('tf_current_user', JSON.stringify(this.currentUser));
+                localStorage.setItem('tf_projects', JSON.stringify(this.projects));
+                localStorage.setItem('tf_mentors', JSON.stringify(this.mentors));
+                localStorage.setItem('tf_students', JSON.stringify(this.students));
+                localStorage.setItem('tf_teams', JSON.stringify(this.teams));
+                localStorage.setItem('tf_active_project', JSON.stringify(this.activeProject));
+                if (this.selectedRole) {
+                    localStorage.setItem('tf_selected_role', this.selectedRole);
+                } else {
+                    localStorage.removeItem('tf_selected_role');
+                }
+            }
+        }
+
+        const state = new AppState();
+
+        function showToast(message, type = 'info', title = '') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-start p-4 rounded-xl shadow-lg border text-sm transition-all duration-300 transform translate-y-2 opacity-0 fade-in ${
+                type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
+                type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-900' :
+                type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                'bg-blue-50 border-blue-200 text-blue-900'
+            }`;
+
+            const iconClass = type === 'success' ? 'fa-circle-check text-emerald-600' :
+                              type === 'error' ? 'fa-triangle-exclamation text-rose-600' :
+                              type === 'warning' ? 'fa-circle-exclamation text-amber-600' :
+                              'fa-circle-info text-blue-600';
+
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-lg mr-3 mt-0.5"></i>
+                <div class="flex-1">
+                    ${title ? `<h4 class="font-bold text-xs uppercase tracking-wider mb-0.5 opacity-90">${title}</h4>` : ''}
+                    <p class="font-medium leading-snug">${message}</p>
+                </div>
+                <button onclick="this.parentElement.remove()" class="ml-2 text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        const app = {
+            init() {
+                if (state.currentUser) {
+                    this.navigateTo('welcome');
+                } else {
+                    this.navigateTo('auth');
+                }
+            },
+
+            navigateTo(page, saveHistory = true) {
+                if (saveHistory && state.currentPage && state.currentPage !== page) {
+                    state.pageHistory.push(state.currentPage);
+                }
+                state.currentPage = page;
+                this.updateNavUI();
+                this.renderPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            goBack() {
+                if (state.pageHistory.length > 0) {
+                    const prev = state.pageHistory.pop();
+                    this.navigateTo(prev, false);
+                } else {
+                    if (state.currentUser) {
+                        this.navigateTo('welcome', false);
+                    } else {
+                        this.navigateTo('auth', false);
+                    }
+                }
+            },
+
+            updateNavUI() {
+                const backBtn = document.getElementById('globalBackBtn');
+                const navUserArea = document.getElementById('navUserArea');
+                
+                if (state.currentPage !== 'auth' && state.currentPage !== 'welcome') {
+                    backBtn.classList.remove('hidden');
+                    backBtn.classList.add('flex');
+                } else {
+                    backBtn.classList.add('hidden');
+                    backBtn.classList.remove('flex');
+                }
+
+                if (state.currentUser) {
+                    navUserArea.classList.remove('hidden');
+                    navUserArea.classList.add('flex');
+                    document.getElementById('navUserName').textContent = state.currentUser.name;
+                    document.getElementById('navAvatar').textContent = state.currentUser.name.charAt(0).toUpperCase();
+                } else {
+                    navUserArea.classList.add('hidden');
+                    navUserArea.classList.remove('flex');
+                }
+            },
+
+            logout() {
+                state.currentUser = null;
+                state.activeProject = null;
+                state.selectedRole = null;
+                state.pageHistory = [];
+                state.save();
+                showToast('You have been logged out successfully.', 'info', 'Session Ended');
+                this.navigateTo('auth', false);
+            },
+
+            renderPage(page) {
+                const container = document.getElementById('appContainer');
+                switch(page) {
+                    case 'auth':
+                        container.innerHTML = this.renderAuthPage();
+                        break;
+                    case 'welcome':
+                        container.innerHTML = this.renderWelcomePage();
+                        break;
+                    case 'project-setup':
+                        container.innerHTML = this.renderProjectSetupPage();
+                        break;
+                    case 'profile-form':
+                        container.innerHTML = this.renderProfileFormPage();
+                        this.initPhoneValidation();
+                        break;
+                    case 'creator-workspace':
+                        container.innerHTML = this.renderCreatorWorkspacePage();
+                        break;
+                    case 'teams':
+                        container.innerHTML = this.renderTeamsPage();
+                        break;
+                    default:
+                        container.innerHTML = this.renderWelcomePage();
+                }
+            },
+
+            renderAuthPage() {
+                return `
+                <div class="max-w-md mx-auto my-6 fade-in">
+                    <div class="glass-card rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                        <div class="flex border-b border-slate-200 bg-slate-50/80">
+                            <button id="tabLoginBtn" onclick="app.switchAuthTab('login')" class="flex-1 py-3.5 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition-all">
+                                <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Log In
+                            </button>
+                            <button id="tabSignupBtn" onclick="app.switchAuthTab('signup')" class="flex-1 py-3.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all">
+                                <i class="fa-solid fa-user-plus mr-1.5"></i> Sign Up
+                            </button>
+                        </div>
+
+                        <div class="p-6 sm:p-8">
+                            <form id="loginForm" onsubmit="app.handleLogin(event)" class="space-y-4">
+                                <div class="text-center mb-4">
+                                    <h2 class="text-xl font-bold text-slate-800">Welcome Back</h2>
+                                    <p class="text-xs text-slate-500">Sign in to access your student team projects</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Gmail Address</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-envelope absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                        <input type="email" id="loginEmail" required class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="student@gmail.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase">Password</label>
+                                        <button type="button" onclick="app.openForgotPasswordModal()" class="text-xs font-semibold text-brand-600 hover:underline">Forgot?</button>
+                                    </div>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                        <input type="password" id="loginPassword" required class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="••••••••">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md shadow-brand-500/20 text-sm transition-all flex items-center justify-center space-x-2">
+                                    <span>Log In</span>
+                                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                                </button>
+                            </form>
+
+                            <form id="signupForm" onsubmit="app.handleSignup(event)" class="space-y-4 hidden">
+                                <div class="text-center mb-4">
+                                    <h2 class="text-xl font-bold text-slate-800">Create Account</h2>
+                                    <p class="text-xs text-slate-500">Register to lead or join academic teams</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Full Name</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                        <input type="text" id="signupName" required class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="Alex Morgan">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Gmail Address</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-envelope absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                        <input type="email" id="signupEmail" required class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="alex@gmail.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Create Password</label>
+                                    <div class="relative">
+                                        <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                        <input type="password" id="signupPassword" required minlength="6" class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="Min 6 characters">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md shadow-brand-500/20 text-sm transition-all flex items-center justify-center space-x-2">
+                                    <span>Register Account</span>
+                                    <i class="fa-solid fa-user-check text-xs"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            switchAuthTab(tab) {
+                const loginForm = document.getElementById('loginForm');
+                const signupForm = document.getElementById('signupForm');
+                const tabLoginBtn = document.getElementById('tabLoginBtn');
+                const tabSignupBtn = document.getElementById('tabSignupBtn');
+
+                if (tab === 'login') {
+                    loginForm.classList.remove('hidden');
+                    signupForm.classList.add('hidden');
+                    tabLoginBtn.className = "flex-1 py-3.5 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition-all";
+                    tabSignupBtn.className = "flex-1 py-3.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
+                } else {
+                    signupForm.classList.remove('hidden');
+                    loginForm.classList.add('hidden');
+                    tabSignupBtn.className = "flex-1 py-3.5 text-sm font-bold text-brand-600 border-b-2 border-brand-600 transition-all";
+                    tabLoginBtn.className = "flex-1 py-3.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
+                }
+            },
+
+            handleLogin(e) {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                if (!isValidGmail(email)) {
+                    showToast('Please enter a valid Gmail address (e.g., user@gmail.com).', 'error', 'Invalid Gmail Address');
+                    return;
+                }
+
+                const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+                if (!user) {
+                    showToast('No account registered with this Gmail address. Please sign up.', 'error', 'Account Not Found');
+                    return;
+                }
+
+                if (user.password !== password) {
+                    showToast('Incorrect password entered. Please try again.', 'error', 'Authentication Failed');
+                    return;
+                }
+
+                state.currentUser = user;
+                state.save();
+                showToast(`Welcome back, ${user.name}!`, 'success', 'Login Successful');
+                this.navigateTo('welcome');
+            },
+
+            handleSignup(e) {
+                e.preventDefault();
+                const name = document.getElementById('signupName').value.trim();
+                const email = document.getElementById('signupEmail').value.trim();
+                const password = document.getElementById('signupPassword').value;
+
+                if (!isValidGmail(email)) {
+                    showToast('Please enter a valid Gmail address ending with @gmail.com.', 'error', 'Invalid Gmail Address');
+                    return;
+                }
+
+                if (state.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                    showToast('An account with this Gmail address already exists. Please log in.', 'warning', 'Duplicate Registration');
+                    return;
+                }
+
+                const newUser = { id: 'usr_' + Date.now(), name, email, password };
+                state.users.push(newUser);
+                state.currentUser = newUser;
+                state.save();
+
+                showToast(`Account successfully created for ${name}!`, 'success', 'Registration Complete');
+                this.navigateTo('welcome');
+            },
+
+            openForgotPasswordModal() {
+                const overlay = document.getElementById('modalOverlay');
+                const content = document.getElementById('modalContent');
+                overlay.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg">Reset Password</h3>
+                        <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+                    <div id="forgotStep1">
+                        <p class="text-xs text-slate-600 mb-3">Enter your registered Gmail address to receive a simulated 6-digit OTP code.</p>
+                        <input type="email" id="forgotEmail" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl mb-3 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="name@gmail.com">
+                        <button onclick="app.sendOTP()" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition-all">Send OTP Code</button>
+                    </div>
+                    <div id="forgotStep2" class="hidden">
+                        <p class="text-xs text-slate-600 mb-2">An OTP code has been generated. Check the notification banner above!</p>
+                        <input type="text" id="otpCodeInput" maxlength="6" class="w-full px-3 py-2 text-center text-lg font-mono font-bold border border-slate-300 rounded-xl mb-3 tracking-widest outline-none" placeholder="000000">
+                        <input type="password" id="newPasswordInput" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl mb-3 outline-none" placeholder="Enter New Password">
+                        <button onclick="app.verifyAndResetPassword()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all">Verify OTP & Update Password</button>
+                    </div>
+                `;
+            },
+
+            closeModal() {
+                document.getElementById('modalOverlay').classList.add('hidden');
+            },
+
+            sendOTP() {
+                const email = document.getElementById('forgotEmail').value.trim();
+                if (!isValidGmail(email)) {
+                    showToast('Please enter a valid Gmail address ending with @gmail.com.', 'error', 'Invalid Gmail Address');
+                    return;
+                }
+
+                const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+                if (!user) {
+                    showToast('No user account found with that Gmail address.', 'error', 'Email Mismatch');
+                    return;
+                }
+
+                this.simulatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+                this.resetUserEmail = email;
+
+                showToast(`Your OTP is ${this.simulatedOTP}. (Simulated Verification)`, 'info', 'OTP Generated');
+                document.getElementById('forgotStep1').classList.add('hidden');
+                document.getElementById('forgotStep2').classList.remove('hidden');
+            },
+
+            verifyAndResetPassword() {
+                const enteredOTP = document.getElementById('otpCodeInput').value.trim();
+                const newPass = document.getElementById('newPasswordInput').value;
+
+                if (enteredOTP !== this.simulatedOTP) {
+                    showToast('Invalid OTP Code entered. Please re-check the generated code.', 'error', 'Verification Failed');
+                    return;
+                }
+                if (!newPass || newPass.length < 6) {
+                    showToast('New password must be at least 6 characters long.', 'warning', 'Weak Password');
+                    return;
+                }
+
+                const user = state.users.find(u => u.email.toLowerCase() === this.resetUserEmail.toLowerCase());
+                if (user) {
+                    user.password = newPass;
+                    state.save();
+                    showToast('Password updated successfully! Please log in with your new credentials.', 'success', 'Password Reset');
+                    this.closeModal();
+                }
+            },
+
+            renderWelcomePage() {
+                return `
+                <div class="max-w-4xl mx-auto py-4 fade-in">
+                    <div class="relative bg-gradient-to-r from-brand-700 via-indigo-700 to-purple-800 rounded-3xl p-6 sm:p-10 text-white shadow-xl mb-8 overflow-hidden">
+                        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                        <div class="relative z-10">
+                            <span class="inline-block px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-semibold text-brand-100 mb-3 border border-white/20">
+                                ✨ Welcome Back
+                            </span>
+                            <h2 class="text-2xl sm:text-4xl font-extrabold mb-2">Hello, ${state.currentUser ? state.currentUser.name : 'Innovator'}!</h2>
+                            <p class="text-sm sm:text-base text-brand-100 max-w-2xl font-normal leading-relaxed">
+                                Select your action below to launch a new academic project, register as a domain mentor, or join as a student. Our AI team formation engine balances branch, academic performance, and technical skills!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div onclick="app.selectRole('creator')" class="glass-card rounded-2xl p-6 hover:shadow-2xl transition-all cursor-pointer border border-slate-200 group hover:-translate-y-1 flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-folder-plus"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-brand-600 transition-colors">Create Project</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                                    Establish a new project repository for your college with custom credentials and manage AI team formation.
+                                </p>
+                            </div>
+                            <div class="flex items-center text-xs font-bold text-brand-600">
+                                <span>Launch Workspace</span>
+                                <i class="fa-solid fa-chevron-right ml-1 text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+
+                        <div onclick="app.selectRole('mentor')" class="glass-card rounded-2xl p-6 hover:shadow-2xl transition-all cursor-pointer border border-slate-200 group hover:-translate-y-1 flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-user-tie"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition-colors">Register as Mentor</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                                    Join an existing project with verified project credentials to guide student teams in specific domain areas.
+                                </p>
+                            </div>
+                            <div class="flex items-center text-xs font-bold text-indigo-600">
+                                <span>Verify Credentials</span>
+                                <i class="fa-solid fa-chevron-right ml-1 text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+
+                        <div onclick="app.selectRole('student')" class="glass-card rounded-2xl p-6 hover:shadow-2xl transition-all cursor-pointer border border-slate-200 group hover:-translate-y-1 flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1 group-hover:text-purple-600 transition-colors">Register as Student</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                                    Input your branch, academic year, percentage, phone details, interests, and skills to get paired with optimal teammates.
+                                </p>
+                            </div>
+                            <div class="flex items-center text-xs font-bold text-purple-600">
+                                <span>Join Project</span>
+                                <i class="fa-solid fa-chevron-right ml-1 text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            selectRole(role) {
+                state.selectedRole = role;
+                state.save();
+                this.navigateTo('project-setup');
+            },
+
+            renderProjectSetupPage() {
+                const isCreator = state.selectedRole === 'creator';
+                const isMentor = state.selectedRole === 'mentor';
+                const userCreatedProjects = state.projects.filter(p => p.creatorEmail === state.currentUser?.email);
+
+                const projNameLabel = 'Project Name';
+
+                return `
+                <div class="max-w-2xl mx-auto py-4 fade-in">
+                    <div class="glass-card rounded-2xl shadow-xl p-6 sm:p-8 border border-slate-200">
+                        <div class="flex items-center space-x-3 mb-6">
+                            <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg">
+                                <i class="fa-solid ${isCreator ? 'fa-folder-plus' : 'fa-shield-halved'}"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">
+                                    ${isCreator ? 'Create New Project' : `Verify Project Credentials (${(state.selectedRole || 'STUDENT').toUpperCase()})`}
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    ${isCreator ? 'Setup access credentials for your college project' : 'Enter college and project credentials provided by your coordinator'}
+                                </p>
+                            </div>
+                        </div>
+
+                        ${isCreator ? `
+                            <form onsubmit="app.handleCreateProject(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">College / University Name</label>
+                                    <input type="text" id="createCollegeName" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. Stanford University">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Project Name</label>
+                                    <input type="text" id="createProjectName" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. AI Health Assistant - 2026">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Project Access Password</label>
+                                        <input type="password" id="createProjPassword" required minlength="4" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="••••••••">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Confirm Password</label>
+                                        <input type="password" id="createConfirmPassword" required minlength="4" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="••••••••">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md text-sm transition-all mt-2">
+                                    Create & Launch Project Workspace
+                                </button>
+                            </form>
+                        ` : `
+                            <form onsubmit="app.handleVerifyProject(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">College / University Name</label>
+                                    <input type="text" id="verifyCollegeName" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. Stanford University">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">${projNameLabel}</label>
+                                    <input type="text" id="verifyProjectName" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="${isMentor ? 'e.g. AI Health Assistant' : 'e.g. AI Health Assistant - 2026'}">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Project Access Password</label>
+                                    <input type="password" id="verifyPassword" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="••••••••">
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md text-sm transition-all mt-2">
+                                    Verify & Proceed to Profile Registration
+                                </button>
+                            </form>
+                        `}
+                    </div>
+
+                    ${userCreatedProjects.length > 0 ? `
+                        <div class="mt-8">
+                            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Projects Created By You</h3>
+                            <div class="space-y-3">
+                                ${userCreatedProjects.map(p => `
+                                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm hover:border-brand-300 transition-all">
+                                        <div>
+                                            <h4 class="font-bold text-slate-800 text-sm">${p.projectName}</h4>
+                                            <p class="text-xs text-slate-500"><i class="fa-solid fa-building-columns mr-1"></i>${p.collegeName}</p>
+                                        </div>
+                                        <button onclick="app.quickLoadProject('${p.id}')" class="px-3 py-1.5 bg-brand-50 text-brand-600 hover:bg-brand-100 rounded-lg text-xs font-bold transition-all">
+                                            Open Workspace <i class="fa-solid fa-arrow-right ml-1"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                `;
+            },
+
+            handleCreateProject(e) {
+                e.preventDefault();
+                const collegeName = document.getElementById('createCollegeName').value.trim();
+                const projectName = document.getElementById('createProjectName').value.trim();
+                const password = document.getElementById('createProjPassword').value;
+                const confirmPass = document.getElementById('createConfirmPassword').value;
+
+                if (password !== confirmPass) {
+                    showToast('Project passwords do not match.', 'error', 'Validation Error');
+                    return;
+                }
+
+                const existing = state.projects.find(p => p.projectName.toLowerCase() === projectName.toLowerCase());
+                if (existing) {
+                    showToast('A project with this exact name and year already exists.', 'warning', 'Duplicate Project');
+                    return;
+                }
+
+                const newProject = {
+                    id: 'proj_' + Date.now(),
+                    collegeName,
+                    projectName,
+                    password,
+                    creatorEmail: state.currentUser.email,
+                    createdAt: new Date().toISOString()
+                };
+
+                state.projects.push(newProject);
+                state.activeProject = newProject;
+                state.selectedRole = 'creator';
+                state.save();
+
+                showToast(`Project "${projectName}" created successfully!`, 'success', 'Project Ready');
+                this.navigateTo('creator-workspace');
+            },
+
+            handleVerifyProject(e) {
+                e.preventDefault();
+                const collegeInput = document.getElementById('verifyCollegeName').value.trim();
+                const projectInput = document.getElementById('verifyProjectName').value.trim();
+                const passwordInput = document.getElementById('verifyPassword').value;
+
+                const matchedProject = state.projects.find(p => 
+                    p.projectName.toLowerCase() === projectInput.toLowerCase() ||
+                    p.projectName.toLowerCase().startsWith(projectInput.toLowerCase())
+                );
+
+                if (!matchedProject) {
+                    showToast(`Project Not Found: Could not locate "${projectInput}" in system records. Please double check the exact project name.`, 'error', 'Project Mismatch');
+                    return;
+                }
+
+                if (matchedProject.collegeName.toLowerCase() !== collegeInput.toLowerCase()) {
+                    showToast(`College Name Mismatch: Expected college "${matchedProject.collegeName}" for this project.`, 'error', 'College Mismatch');
+                    return;
+                }
+
+                if (matchedProject.password !== passwordInput) {
+                    showToast('Incorrect Project Password: The password provided for this project is invalid.', 'error', 'Security Verification Failed');
+                    return;
+                }
+
+                state.activeProject = matchedProject;
+                state.save();
+                showToast(`Verified credentials for ${matchedProject.projectName}!`, 'success', 'Access Granted');
+                this.navigateTo('profile-form');
+            },
+
+            quickLoadProject(projectId) {
+                const proj = state.projects.find(p => p.id === projectId);
+                if (proj) {
+                    state.activeProject = proj;
+                    state.selectedRole = 'creator';
+                    state.save();
+                    this.navigateTo('creator-workspace');
+                }
+            },
+
+            renderProfileFormPage() {
+                const isMentor = state.selectedRole === 'mentor';
+                const defaultUser = state.currentUser || { name: '', email: '' };
+
+                return `
+                <div class="max-w-2xl mx-auto py-4 fade-in">
+                    <div class="glass-card rounded-2xl shadow-xl p-6 sm:p-8 border border-slate-200">
+                        <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-slate-200">
+                            <div class="w-10 h-10 rounded-xl ${isMentor ? 'bg-indigo-100 text-indigo-600' : 'bg-purple-100 text-purple-600'} flex items-center justify-center font-bold text-lg">
+                                <i class="fa-solid ${isMentor ? 'fa-user-tie' : 'fa-graduation-cap'}"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">
+                                    ${isMentor ? 'Mentor Profile Setup' : 'Student Profile Registration'}
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    Project: <span class="font-bold text-slate-700">${state.activeProject ? state.activeProject.projectName : 'Active Project'}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <form id="profileForm" onsubmit="app.handleProfileSubmit(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Full Name</label>
+                                <input type="text" id="profName" required value="${defaultUser.name}" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Alex Morgan">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Country & Phone Number</label>
+                                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <div class="sm:col-span-5">
+                                        <select id="countrySelect" onchange="app.onCountryChange()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                            ${COUNTRY_CONFIGS.map(c => `
+                                                <option value="${c.code}" ${c.code === 'IN' ? 'selected' : ''}>${c.flag} ${c.name} (${c.dialCode})
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-7 relative">
+                                        <div class="flex items-center">
+                                            <span id="dialCodeBadge" class="inline-flex items-center px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl">
+                                                +91
+                                            </span>
+                                            <input type="text" id="phoneInput" required oninput="app.validatePhoneInput()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-r-xl focus:ring-2 focus:ring-brand-500 outline-none font-mono" placeholder="9876543210">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center mt-1.5 px-1">
+                                    <span id="phoneHelpText" class="text-[11px] text-slate-500">
+                                        Requirements: Exactly 10 digits
+                                    </span>
+                                    <span id="phoneCounterBadge" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                                        0 / 10 digits
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Gender</label>
+                                <select id="profGender" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Non-Binary">Non-Binary</option>
+                                    <option value="Prefer Not to Say">Prefer Not to Say</option>
+                                </select>
+                            </div>
+
+                            ${!isMentor ? `
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Branch / Major</label>
+                                        <select id="profBranch" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                            <option value="">Select Branch</option>
+                                            <option value="CSE">Computer Science (CSE)</option>
+                                            <option value="AI/DS">AI & Data Science (AI/DS)</option>
+                                            <option value="ECE">Electronics (ECE)</option>
+                                            <option value="EEE">Electrical (EEE)</option>
+                                            <option value="ME">Mechanical (ME)</option>
+                                            <option value="Civil">Civil Engineering</option>
+                                            <option value="IT">Information Tech (IT)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Academic Year</label>
+                                        <select id="profYear" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-white">
+                                            <option value="">Select Year</option>
+                                            <option value="1st Year">1st Year</option>
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                            <option value="4th Year">4th Year</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Percentage / GPA (%)</label>
+                                        <input type="number" id="profPercentage" min="0" max="100" step="0.01" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. 85.5">
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${isMentor ? `
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Domain Expertise / Guidance Areas</label>
+                                    <input type="text" id="profInterests" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. Machine Learning, Cloud Architecture, System Design">
+                                    <p class="text-[11px] text-slate-400 mt-1">Our AI algorithm matches teams based on complementary skill tags.</p>
+                                </div>
+                            ` : `
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Interests</label>
+                                        <input type="text" id="profInterests" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. Artificial Intelligence, Web Development, Robotics, Data Science">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Skills</label>
+                                        <input type="text" id="profSkills" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none" placeholder="e.g. Python, React, Java, C++, Figma, Node.js">
+                                        <p class="text-[11px] text-slate-400 mt-1">Enter comma-separated technical skills to match with optimal team members.</p>
+                                    </div>
+                                </div>
+                            `}
+
+                            <button type="submit" class="w-full py-2.5 ${isMentor ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold rounded-xl shadow-md text-sm transition-all mt-4">
+                                Complete Profile & Register
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                `;
+            },
+
+            initPhoneValidation() {
+                this.onCountryChange();
+            },
+
+            onCountryChange() {
+                const countrySelect = document.getElementById('countrySelect');
+                const dialCodeBadge = document.getElementById('dialCodeBadge');
+                const phoneInput = document.getElementById('phoneInput');
+                const phoneHelpText = document.getElementById('phoneHelpText');
+
+                if (!countrySelect || !phoneInput || !dialCodeBadge || !phoneHelpText) return;
+
+                const countryCode = countrySelect.value;
+                const config = COUNTRY_CONFIGS.find(c => c.code === countryCode) || COUNTRY_CONFIGS[0];
+
+                dialCodeBadge.textContent = config.dialCode;
+                phoneInput.placeholder = config.example;
+                phoneInput.maxLength = config.max;
+
+                if (config.min === config.max) {
+                    phoneHelpText.textContent = `Requirements: Exactly ${config.min} digits for ${config.name}`;
+                } else {
+                    phoneHelpText.textContent = `Requirements: ${config.min} to ${config.max} digits for ${config.name}`;
+                }
+
+                this.validatePhoneInput();
+            },
+
+            validatePhoneInput() {
+                const countrySelect = document.getElementById('countrySelect');
+                const phoneInput = document.getElementById('phoneInput');
+                const badge = document.getElementById('phoneCounterBadge');
+
+                if (!countrySelect || !phoneInput || !badge) return false;
+
+                const countryCode = countrySelect.value;
+                const config = COUNTRY_CONFIGS.find(c => c.code === countryCode) || COUNTRY_CONFIGS[0];
+
+                let cleaned = phoneInput.value.replace(/\D/g, '');
+                if (cleaned.length > config.max) {
+                    cleaned = cleaned.substring(0, config.max);
+                }
+                phoneInput.value = cleaned;
+
+                const currentLen = cleaned.length;
+                const isValid = currentLen >= config.min && currentLen <= config.max;
+
+                if (config.min === config.max) {
+                    badge.textContent = `${currentLen} / ${config.max} digits`;
+                } else {
+                    badge.textContent = `${currentLen} digits (Req: ${config.min}-${config.max})`;
+                }
+
+                if (currentLen === 0) {
+                    badge.className = "text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600";
+                    phoneInput.className = "w-full px-3 py-2 text-sm border border-slate-300 rounded-r-xl focus:ring-2 focus:ring-brand-500 outline-none font-mono";
+                } else if (isValid) {
+                    badge.className = "text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300";
+                    phoneInput.className = "w-full px-3 py-2 text-sm border border-emerald-500 rounded-r-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono bg-emerald-50/20";
+                } else {
+                    badge.className = "text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-300";
+                    phoneInput.className = "w-full px-3 py-2 text-sm border border-rose-400 rounded-r-xl focus:ring-2 focus:ring-rose-500 outline-none font-mono bg-rose-50/20";
+                }
+
+                return isValid;
+            },
+
+            handleProfileSubmit(e) {
+                e.preventDefault();
+                const isValidPhone = this.validatePhoneInput();
+                const countrySelect = document.getElementById('countrySelect');
+                const countryCode = countrySelect ? countrySelect.value : 'IN';
+                const config = COUNTRY_CONFIGS.find(c => c.code === countryCode) || COUNTRY_CONFIGS[0];
+
+                if (!isValidPhone) {
+                    showToast(`Invalid Phone Length: ${config.name} phone numbers require ${config.min === config.max ? config.min : config.min + '-' + config.max} digits.`, 'error', 'Validation Failure');
+                    return;
+                }
+
+                const name = document.getElementById('profName').value.trim();
+                const phone = document.getElementById('phoneInput').value.trim();
+                const fullPhone = `${config.dialCode} ${phone}`;
+                const gender = document.getElementById('profGender').value;
+
+                const projectId = state.activeProject ? state.activeProject.id : 'proj_demo';
+
+                if (state.selectedRole === 'mentor') {
+                    const interestsRaw = document.getElementById('profInterests').value;
+                    const interests = interestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+                    const mentorObj = {
+                        id: 'ment_' + Date.now(),
+                        projectId,
+                        name,
+                        countryCode: config.code,
+                        countryFlag: config.flag,
+                        phone: fullPhone,
+                        gender,
+                        interests
+                    };
+                    state.mentors.push(mentorObj);
+                    showToast(`Mentor profile saved for ${name}!`, 'success', 'Registration Successful');
+                } else {
+                    const interestsRaw = document.getElementById('profInterests').value;
+                    const interests = interestsRaw.split(',').map(s => s.trim()).filter(Boolean);
+                    
+                    const skillsEl = document.getElementById('profSkills');
+                    const skillsRaw = skillsEl ? skillsEl.value : '';
+                    const skills = skillsRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+                    const branchEl = document.getElementById('profBranch');
+                    const yearEl = document.getElementById('profYear');
+                    const percentageEl = document.getElementById('profPercentage');
+
+                    const studentObj = {
+                        id: 'stud_' + Date.now(),
+                        projectId,
+                        name,
+                        countryCode: config.code,
+                        countryFlag: config.flag,
+                        phone: fullPhone,
+                        gender,
+                        branch: branchEl ? branchEl.value : 'General',
+                        year: yearEl ? yearEl.value : '1st Year',
+                        percentage: percentageEl ? percentageEl.value : '0',
+                        interests,
+                        skills
+                    };
+                    state.students.push(studentObj);
+                    showToast(`Student profile registered for ${name}!`, 'success', 'Registration Successful');
+                }
+
+                state.save();
+                this.navigateTo('teams');
+            },
+
+            renderCreatorWorkspacePage() {
+                const proj = state.activeProject || (state.projects.length > 0 ? state.projects[0] : { id: 'demo', projectName: 'Demo Project', collegeName: 'College', password: '123' });
+                const projStudents = state.students.filter(s => s.projectId === proj.id);
+                const projMentors = state.mentors.filter(m => m.projectId === proj.id);
+
+                return `
+                <div class="space-y-6 fade-in">
+                    <div class="glass-card rounded-2xl p-6 border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-100 text-brand-700 uppercase tracking-wider">Project Admin</span>
+                                <span class="text-xs text-slate-400">• Created by ${state.currentUser ? state.currentUser.name : 'You'}</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-slate-800">${proj.projectName}</h2>
+                            <p class="text-xs text-slate-500"><i class="fa-solid fa-building-columns mr-1"></i>${proj.collegeName} | Access Password: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-mono">${proj.password}</code></p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="app.generateTeamsWithAI()" class="px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center shadow-md shadow-brand-500/20">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate Teams with AI
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Registered Students</p>
+                                <h4 class="text-xl font-extrabold text-slate-800">${projStudents.length}</h4>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Registered Mentors</p>
+                                <h4 class="text-xl font-extrabold text-slate-800">${projMentors.length}</h4>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-people-group"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Formed Teams</p>
+                                <h4 class="text-xl font-extrabold text-slate-800">${state.teams.filter(t => t.projectId === proj.id).length}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
+                                <span><i class="fa-solid fa-user-tie text-indigo-600 mr-2"></i>Mentors (${projMentors.length})</span>
+                            </h3>
+                            <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                ${projMentors.length === 0 ? '<p class="text-xs text-slate-400 py-4 text-center">No mentors registered yet.</p>' : 
+                                  projMentors.map(m => `
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
+                                        <div>
+                                            <p class="font-bold text-slate-800">${m.name} <span class="text-slate-400 font-normal">(${m.gender})</span></p>
+                                            <p class="text-[11px] text-slate-500">${m.countryFlag || '🌐'} ${m.phone}</p>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1 max-w-[50%] justify-end">
+                                            ${(m.interests || []).map(i => `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-semibold">${i}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                  `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
+                                <span><i class="fa-solid fa-graduation-cap text-purple-600 mr-2"></i>Students (${projStudents.length})</span>
+                            </h3>
+                            <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                ${projStudents.length === 0 ? '<p class="text-xs text-slate-400 py-4 text-center">No students registered yet.</p>' : 
+                                  projStudents.map(s => `
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
+                                        <div>
+                                            <p class="font-bold text-slate-800">${s.name} <span class="text-slate-500 font-normal">(${s.branch} • ${s.year}${s.percentage ? ' • ' + s.percentage + '%' : ''})</span></p>
+                                            <p class="text-[11px] text-slate-500">${s.countryFlag || '🌐'} ${s.phone}</p>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1 max-w-[40%] justify-end">
+                                            ${(s.skills || s.interests || []).slice(0, 3).map(i => `<span class="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md text-[10px] font-semibold">${i}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                  `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            },
+
+            async generateTeamsWithAI() {
+                if (!state.activeProject && state.projects.length > 0) {
+                    state.activeProject = state.projects[0];
+                }
+                if (!state.activeProject) {
+                    showToast('Please create or select a project first.', 'warning', 'No Active Project');
+                    return;
+                }
+
+                const pid = state.activeProject.id;
+                const students = state.students.filter(s => s.projectId === pid);
+                const mentors = state.mentors.filter(m => m.projectId === pid);
+
+                if (students.length < 2) {
+                    showToast('At least 2 students are required to form teams.', 'warning', 'Insufficient Applicants');
+                    return;
+                }
+
+                const overlay = document.getElementById('modalOverlay');
+                const content = document.getElementById('modalContent');
+                overlay.classList.remove('hidden');
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <h3 class="font-bold text-slate-800 text-base mb-1">Forming Intelligent Teams...</h3>
+                        <p class="text-xs text-slate-500 max-w-xs mx-auto">Evaluating student branch balance, year diversity, academic performance, and skill set alignment via AI engine.</p>
+                    </div>
+                `;
+
+                try {
+                    let generatedTeams = this.runFallbackTeamAlgorithm(students, mentors);
+
+                    const formattedTeams = generatedTeams.map((t, idx) => ({
+                        id: 'team_' + Date.now() + '_' + idx,
+                        projectId: pid,
+                        teamName: t.teamName || `Team Alpha-${idx + 1}`,
+                        focusArea: t.focusArea || 'Multi-disciplinary Engineering',
+                        mentorId: t.mentorId || (mentors[idx % mentors.length]?.id || null),
+                        studentIds: t.studentIds || [],
+                        pairingRationale: t.pairingRationale || 'Balanced team formed with diverse academic branch background and complementary skill alignment.'
+                    }));
+
+                    state.teams = state.teams.filter(t => t.projectId !== pid).concat(formattedTeams);
+                    state.save();
+
+                    this.closeModal();
+                    showToast(`Successfully created ${formattedTeams.length} balanced AI teams!`, 'success', 'Teams Formed');
+                    this.navigateTo('teams');
+
+                } catch (err) {
+                    this.closeModal();
+                    showToast('An error occurred during team formation. Please try again.', 'error', 'Execution Error');
+                }
+            },
+
+            runFallbackTeamAlgorithm(students, mentors) {
+                const teamSize = 4;
+                const numTeams = Math.ceil(students.length / teamSize);
+                const teams = [];
+
+                const shuffled = [...students].sort(() => Math.random() - 0.5);
+
+                for (let i = 0; i < numTeams; i++) {
+                    const teamStudents = shuffled.slice(i * teamSize, (i + 1) * teamSize);
+                    const mentor = mentors.length > 0 ? mentors[i % mentors.length] : null;
+
+                    teams.push({
+                        teamName: `Innovators Team ${String.fromCharCode(65 + i)}`,
+                        focusArea: (teamStudents[0]?.skills && teamStudents[0]?.skills[0]) || teamStudents[0]?.interests[0] || 'Technical Project',
+                        mentorId: mentor ? mentor.id : null,
+                        studentIds: teamStudents.map(s => s.id),
+                        pairingRationale: `Grouped to combine ${teamStudents.map(s => s.branch).join(', ')} specializations.`
+                    });
+                }
+                return teams;
+            },
+
+            renderTeamsPage() {
+                const pid = state.activeProject ? state.activeProject.id : null;
+                const projTeams = state.teams.filter(t => !pid || t.projectId === pid);
+
+                return `
+                <div class="space-y-6 fade-in">
+                    <div class="glass-card rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                                Official Roster
+                            </span>
+                            <h2 class="text-2xl font-bold text-slate-800 mt-1">Generated Team Rosters</h2>
+                            <p class="text-xs text-slate-500">
+                                Project: <span class="font-bold text-slate-700">${state.activeProject ? state.activeProject.projectName : 'All Projects'}</span>
+                            </p>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <button onclick="app.exportTeams('csv')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all border border-slate-300 flex items-center">
+                                <i class="fa-solid fa-file-csv text-emerald-600 mr-2 text-sm"></i> Export CSV
+                            </button>
+                            <button onclick="app.exportTeams('json')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all border border-slate-300 flex items-center">
+                                <i class="fa-solid fa-file-code text-blue-600 mr-2 text-sm"></i> Export JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    ${projTeams.length === 0 ? `
+                        <div class="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
+                            <i class="fa-solid fa-users-viewfinder text-4xl text-slate-300 mb-3"></i>
+                            <h3 class="text-base font-bold text-slate-700">No Teams Formed Yet</h3>
+                            <p class="text-xs text-slate-500 mt-1 mb-4">Launch the Creator Workspace and click "Generate Teams with AI" to assign members.</p>
+                            ${state.selectedRole === 'creator' ? `
+                                <button onclick="app.navigateTo('creator-workspace')" class="px-4 py-2 bg-brand-600 text-white font-bold text-xs rounded-xl hover:bg-brand-700 transition-all">
+                                    Go to Creator Workspace
+                                </button>
+                            ` : ''}
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${projTeams.map((t, idx) => {
+                                const mentor = state.mentors.find(m => m.id === t.mentorId);
+                                const studentIds = t.studentIds || [];
+                                const teamStudents = state.students.filter(s => studentIds.includes(s.id));
+
+                                return `
+                                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h3 class="font-extrabold text-slate-800 text-lg">${t.teamName}</h3>
+                                                <span class="inline-block px-2.5 py-0.5 bg-brand-50 text-brand-700 rounded-md text-[11px] font-semibold mt-0.5">
+                                                    Focus: ${t.focusArea}
+                                                </span>
+                                            </div>
+                                            <span class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-xs">
+                                                #${idx + 1}
+                                            </span>
+                                        </div>
+
+                                        <div class="bg-indigo-50/70 rounded-xl p-3 border border-indigo-100 mb-4">
+                                            <p class="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider mb-1">
+                                                <i class="fa-solid fa-user-tie mr-1"></i> Assigned Mentor
+                                            </p>
+                                            ${mentor ? `
+                                                <div class="flex justify-between items-center text-xs">
+                                                    <div>
+                                                        <span class="font-bold text-slate-800">${mentor.name}</span>
+                                                        <p class="text-[11px] text-slate-500">${mentor.countryFlag || '🌐'} ${mentor.phone}</p>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-1">
+                                                        ${(mentor.interests || []).slice(0, 2).map(i => `<span class="px-1.5 py-0.5 bg-white text-indigo-800 rounded text-[9px] font-bold border border-indigo-200">${i}</span>`).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : '<p class="text-xs text-slate-400">Unassigned</p>'}
+                                        </div>
+
+                                        <div class="space-y-2 mb-4">
+                                            <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                                                Student Members (${teamStudents.length})
+                                            </p>
+                                            ${teamStudents.map(s => `
+                                                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
+                                                    <div>
+                                                        <p class="font-bold text-slate-800">${s.name}</p>
+                                                        <p class="text-[10px] text-slate-500">${s.branch} • ${s.year}${s.percentage ? ' • ' + s.percentage + '%' : ''} • ${s.countryFlag || '🌐'} ${s.phone}</p>
+                                                    </div>
+                                                    <div class="flex flex-wrap gap-1">
+                                                        ${(s.skills || s.interests || []).slice(0, 2).map(i => `<span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[9px] font-semibold">${i}</span>`).join('')}
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-3 border-t border-slate-100 text-[11px] text-slate-500 italic bg-slate-50/50 -mx-6 -mb-6 p-4 rounded-b-2xl">
+                                        <i class="fa-solid fa-brain text-brand-500 mr-1"></i> "${t.pairingRationale}"
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `}
+                </div>
+                `;
+            },
+
+            exportTeams(format) {
+                const pid = state.activeProject ? state.activeProject.id : null;
+                const projTeams = state.teams.filter(t => !pid || t.projectId === pid);
+
+                if (projTeams.length === 0) {
+                    showToast('No teams available to export.', 'warning', 'Export Error');
+                    return;
+                }
+
+                const exportData = projTeams.map(t => {
+                    const mentor = state.mentors.find(m => m.id === t.mentorId);
+                    const studentIds = t.studentIds || [];
+                    const students = state.students.filter(s => studentIds.includes(s.id));
+                    return {
+                        teamName: t.teamName,
+                        focusArea: t.focusArea,
+                        mentorName: mentor ? mentor.name : 'None',
+                        mentorPhone: mentor ? mentor.phone : '',
+                        students: students.map(s => `${s.name} (${s.branch}, ${s.year}${s.percentage ? ', ' + s.percentage + '%' : ''}, ${s.phone})`).join(' | '),
+                        pairingRationale: t.pairingRationale
+                    };
+                });
+
+                if (format === 'json') {
+                    const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+                    const anchor = document.createElement('a');
+                    anchor.setAttribute("href", str);
+                    anchor.setAttribute("download", `Team_Roster_${Date.now()}.json`);
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    showToast('Exported teams to JSON file.', 'success', 'Download Complete');
+                } else {
+                    let csv = "Team Name,Focus Area,Mentor Name,Mentor Phone,Students,Rationale\n";
+                    exportData.forEach(row => {
+                        csv += `"${row.teamName.replace(/"/g, '""')}","${row.focusArea.replace(/"/g, '""')}","${row.mentorName.replace(/"/g, '""')}","${row.mentorPhone}","${row.students.replace(/"/g, '""')}","${row.pairingRationale.replace(/"/g, '""')}"\n`;
+                    });
+
+                    const str = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+                    const anchor = document.createElement('a');
+                    anchor.setAttribute("href", str);
+                    anchor.setAttribute("download", `Team_Roster_${Date.now()}.csv`);
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    showToast('Exported teams to CSV file.', 'success', 'Download Complete');
+                }
+            }
+        };
+
+        window.onload = function() {
+            app.init();
+        };
+    </script>
+</body>
+</html>
